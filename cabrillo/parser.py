@@ -7,6 +7,7 @@ from cabrillo.data import KEYWORD_MAP
 
 import collections
 import re
+import urllib3
 
 def parse_qso(text, valid):
     """Parse a single line of QSO into a QSO object.
@@ -143,3 +144,30 @@ def parse_log_file(filename, ignore_unknown_key=False, check_categories=True, ig
     """
     with open(filename, 'r', encoding='unicode_escape') as f:
         return parse_log_text(f.read(), ignore_unknown_key, check_categories, ignore_order)
+
+def parse_log_url(url, ignore_unknown_key=False, check_categories=True, ignore_order=False) -> object:
+    """Parse a Cabrillo log file sourced from the internet.
+        Attributes in cabrillo.data.KEYWORD_MAP will be parsed accordingly. X-
+        attributes will be sorted into the x_anything attribute of the Cabrillo
+        object.
+
+        Arguments:
+            filename: filename of the target log file.
+            check_categories: Check if categories, if given, exist in the
+                Cabrillo specification.
+            ignore_unknown_key: Boolean denoting whether if unknown and non X-
+                attributes should be ignored if found in long. Defaults to False.
+            ignore_order: Cabrillo logs need to be ordered time-wise.
+                Whether to ignore violations on input and disable output.
+
+        Returns:
+            cabrillo.Cabrillo
+
+        Raises:
+            InvalidQSOException, InvalidLogException
+    """
+    http = urllib3.PoolManager()
+    response = http.request('GET',url)
+    data = response.data.decode()
+    return parse_log_text(data, ignore_unknown_key, check_categories, ignore_order)
+
